@@ -21,6 +21,18 @@ import aedes
 from aedes.remote_sensing_utils import get_satellite_measures_from_AOI, reverse_geocode_points, reverse_geocode_points
 from aedes.remote_sensing_utils import perform_clustering, visualize_on_map
 ```
+### Authentication and Initialization
+This packages uses Google Earth Engine (sign-up for access [here](https://earthengine.google.com/signup/)) to query remote sensing data. To authenticate, simply use:
+
+```
+aedes.remote_sensing_utils.authenticate()
+```
+
+This script will open a google authenticator that uses your email (provided you've signed up earlier) to authenticate your script to query remote sensing data. After authentication, initialize access using:
+
+```
+aedes.remote_sensing_utils.initialize()
+```
 
 ### Area of Interest
 
