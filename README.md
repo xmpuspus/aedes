@@ -2,7 +2,7 @@
 
 This repository contains codes that demonstrate the use of Project AEDES for data collection on remote sensing using LANDSAT, MODIS and SENTINEL.  
 
-Author: Xavier Puspus. 
+Author: Xavier Puspus  
 Affiliation: [Cirrolytix Research Services](cirrolytix.com)
 
 ### Installation
