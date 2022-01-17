@@ -14,6 +14,14 @@ Install using:
 foo@bar:~$ pip install aedes
 ```
 
+Import the package using:
+
+```
+import aedes
+from aedes.remote_sensing_utils import get_satellite_measures_from_AOI, reverse_geocode_points, reverse_geocode_points
+from aedes.remote_sensing_utils import perform_clustering, visualize_on_map
+```
+
 ### Area of Interest
 
 First, find the bounding box geojson of an Area of Interest (AOI) of your choice using this [link](https://boundingbox.klokantech.com/).
