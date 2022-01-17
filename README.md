@@ -66,3 +66,4 @@ vizo = visualize_on_map(rev_geocode_qc_df)
 vizo
 ```
 
+![Hotspot detection example of Quezon City, Philippines](sample_hotspots.png)
