@@ -152,25 +152,31 @@ def meanPrecipitationCollection(img, aoi)->float:
 
     return precipValue.getInfo()
 
-def meanSpecHumidityCollection(img, aoi)->float:
+def meanRelHumidityCollection(img, aoi)->float:
     """
     Global Land Data Assimilation System (GLDAS) ingests satellite and ground-based observational data products. 
     Using advanced land surface modeling and data assimilation techniques, 
     it generates optimal fields of land surface states and fluxes.
+    Ranges from 0 to 100 (with estimation errors)
     """
     
-    spechum = img.select('Qair_f_inst')
+    relative_humidity = img.expression(
+      '0.263 * p * q * (exp(17.67 * (T - T0) / (T - 29.65))) ** -1', {
+        'T': img.select('Tair_f_inst'),
+        'T0': 273.16,
+        'p': img.select('Psurf_f_inst'),
+        'q': img.select('Qair_f_inst')
+      }
+    ).float().rename('relative_humidity')
     
-    spechumImage = spechum.rename('specific_humidity')
-    
-    # Compute the mean of of precipitation over the 'region'
-    spechumValue = spechumImage.reduceRegion(**{
+    # Compute the mean of relative humidity over the 'region'
+    relative_humidityValue = relative_humidity.reduceRegion(**{
     'geometry': aoi.getInfo(),
     'reducer': ee.Reducer.mean(),
     'scale': 1000
-    }).get('specific_humidity'); 
+    }).get('relative_humidity'); 
 
-    return spechumValue.getInfo()
+    return relative_humidityValue.getInfo()
 
 def get_satellite_measures_from_AOI(aoi_geojson, 
                            sample_points, 
@@ -234,15 +240,15 @@ def get_satellite_measures_from_AOI(aoi_geojson,
     points_df['surface_temperature'] = (points_df['buffered_geometry']
                                         .apply(lambda x: meanSurfaceTemperatureCollection(modis_sat_image, x)))
     points_df['precipitation_rate'] = (points_df['buffered_geometry']
-                                        .apply(lambda x: totalPrecipitationCollection(gldas_sat_image, x)))
-    points_df['specific_humidity'] = (points_df['buffered_geometry']
-                                        .apply(lambda x: meanSpecHumidityCollection(gldas_sat_image, x)))
+                                        .apply(lambda x: meanPrecipitationCollection(gldas_sat_image, x)))
+    points_df['relative_humidity'] = (points_df['buffered_geometry']
+                                        .apply(lambda x: meanRelHumidityCollection(gldas_sat_image, x)))
     
     return points_df
 
 def perform_clustering(df, 
                        features=['longitude', 'latitude', 'ndvi', 'ndbi', 'ndwi', 
-                                 'surface_temperature', 'precipitation_rate', 'specific_humidity'],
+                                 'surface_temperature', 'precipitation_rate', 'relative_humidity'],
                        n_clusters=5)->pd.Series:
     """
     From dataframe and preset list of features to cluster, output labels
