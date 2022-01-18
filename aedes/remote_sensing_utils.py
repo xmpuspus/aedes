@@ -123,7 +123,6 @@ def meanSurfaceTemperatureCollection(img, aoi)->float:
     
     surftempImage = surftemp.rename('surface_temperature')
     
-    # Compute the mean of aerosol (air quality index) over the 'region'
     surftempValue = surftempImage.reduceRegion(**{
     'geometry': aoi.getInfo(),
     'reducer': ee.Reducer.mean(),
@@ -131,6 +130,47 @@ def meanSurfaceTemperatureCollection(img, aoi)->float:
     }).get('surface_temperature');  # result of reduceRegion is always a dictionary, so get the element we want
 
     return surftempValue.getInfo() * 0.02 - 273.15 # converting LST Digital Number to Deg Celsius
+
+
+def meanPrecipitationCollection(img, aoi)->float:
+    """
+    Global Land Data Assimilation System (GLDAS) ingests satellite and ground-based observational data products. 
+    Using advanced land surface modeling and data assimilation techniques, 
+    it generates optimal fields of land surface states and fluxes.
+    """
+    
+    precip = img.select('Rainf_f_tavg')
+    
+    precipImage = precip.rename('precipitation')
+    
+    # Compute the mean of of precipitation over the 'region'
+    precipValue = precipImage.reduceRegion(**{
+    'geometry': aoi.getInfo(),
+    'reducer': ee.Reducer.mean(),
+    'scale': 1000
+    }).get('precipitation'); 
+
+    return precipValue.getInfo()
+
+def meanSpecHumidityCollection(img, aoi)->float:
+    """
+    Global Land Data Assimilation System (GLDAS) ingests satellite and ground-based observational data products. 
+    Using advanced land surface modeling and data assimilation techniques, 
+    it generates optimal fields of land surface states and fluxes.
+    """
+    
+    spechum = img.select('Qair_f_inst')
+    
+    spechumImage = spechum.rename('specific_humidity')
+    
+    # Compute the mean of of precipitation over the 'region'
+    spechumValue = spechumImage.reduceRegion(**{
+    'geometry': aoi.getInfo(),
+    'reducer': ee.Reducer.mean(),
+    'scale': 1000
+    }).get('specific_humidity'); 
+
+    return spechumValue.getInfo()
 
 def get_satellite_measures_from_AOI(aoi_geojson, 
                            sample_points, 
@@ -147,6 +187,10 @@ def get_satellite_measures_from_AOI(aoi_geojson,
     surface_temperature_catalog = "MODIS/006/MOD11A1"
     modis = ee.ImageCollection(surface_temperature_catalog)
     
+    # GLDAS catalog (for precipitation)
+    precip_catalog = "NASA/GLDAS/V021/NOAH/G025/T3H"
+    gldas = ee.ImageCollection(precip_catalog)
+    
     # setting the Area of Interest (AOI)
     AOI = ee.Geometry.Polygon(aoi_geojson)
 
@@ -161,6 +205,12 @@ def get_satellite_measures_from_AOI(aoi_geojson,
 
     # Get satellite image for MODIS
     modis_sat_image = ee.Image(modis_AOI.median())
+    
+    # filter area and date for GLDAS
+    gldas_AOI = gldas.filterBounds(AOI).filterDate(date_from, date_to)
+
+    # Get satellite image for GLDAS
+    gldas_sat_image = ee.Image(gldas_AOI.median())
     
     # Function to get 1km patches of images from each point
     roi_with_buffer_fn = lambda geopoint: ee.Geometry.Point([geopoint.xy[0][0], geopoint.xy[1][0]]).buffer(1000)
@@ -183,11 +233,16 @@ def get_satellite_measures_from_AOI(aoi_geojson,
     points_df['aerosol'] = points_df['buffered_geometry'].apply(lambda x: meanAirQualityCollection(sat_image, x))
     points_df['surface_temperature'] = (points_df['buffered_geometry']
                                         .apply(lambda x: meanSurfaceTemperatureCollection(modis_sat_image, x)))
+    points_df['precipitation_rate'] = (points_df['buffered_geometry']
+                                        .apply(lambda x: totalPrecipitationCollection(gldas_sat_image, x)))
+    points_df['specific_humidity'] = (points_df['buffered_geometry']
+                                        .apply(lambda x: meanSpecHumidityCollection(gldas_sat_image, x)))
     
     return points_df
 
 def perform_clustering(df, 
-                       features=['longitude', 'latitude', 'ndvi', 'ndbi', 'ndwi', 'surface_temperature'],
+                       features=['longitude', 'latitude', 'ndvi', 'ndbi', 'ndwi', 
+                                 'surface_temperature', 'precipitation_rate', 'specific_humidity'],
                        n_clusters=5)->pd.Series:
     """
     From dataframe and preset list of features to cluster, output labels
