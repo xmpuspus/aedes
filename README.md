@@ -99,7 +99,7 @@ vizo
 The package needed is imported as follows:
 
 ```
-from osm_utils import initialize_OSM_network, get_OSM_network_data
+from aedes.osm_utils import initialize_OSM_network, get_OSM_network_data
 ```
 
 ### Spatial Data from Map Networks
