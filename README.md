@@ -14,6 +14,10 @@ Install using:
 foo@bar:~$ pip install aedes
 ```
 
+
+
+# Satellite Data
+
 Import the package using:
 
 ```
@@ -21,6 +25,7 @@ import aedes
 from aedes.remote_sensing_utils import get_satellite_measures_from_AOI, reverse_geocode_points, reverse_geocode_points
 from aedes.remote_sensing_utils import perform_clustering, visualize_on_map
 ```
+
 ### Authentication and Initialization
 This packages uses Google Earth Engine (sign-up for access [here](https://earthengine.google.com/signup/)) to query remote sensing data. To authenticate, simply use:
 
@@ -40,9 +45,9 @@ First, find the bounding box geojson of an Area of Interest (AOI) of your choice
 
 ![Bounding box example of Quezon City, Philippines](bbox.png)
 
-### Get Normalized Difference Indices
+### Get Normalized Difference Indices and Weather Data
 
-Use the one-liner code `get_satellite_measures_from_AOI` to extract NDVI, NDWI, NDBI, Aerosol Index (Air Quality) and Surface Temperature for your preset number of points of interest `sample_points` within a specified date duration `date_from` to `date_to`.
+Use the one-liner code `get_satellite_measures_from_AOI` to extract NDVI, NDWI, NDBI, Aerosol Index (Air Quality), Surface Temperature, Precipitation Rate and Relative Humidity for your preset number of points of interest `sample_points` within a specified date duration `date_from` to `date_to`.
 
 ```
 %%time
@@ -77,7 +82,7 @@ rev_geocode_qc_df['labels'] = perform_clustering(rev_geocode_qc_df,
                                      n_clusters=3)
 ```
 
-### Visualize on a Map
+### Visualize Hotspots on a Map
 
 This packages also provides the capability of visualizing all the points of interest with their proper labels using one line of code.
 
@@ -87,3 +92,42 @@ vizo
 ```
 
 ![Hotspot detection example of Quezon City, Philippines](sample_hotspots.png)
+
+# OpenStreetMap Data
+
+
+The package needed is imported as follows:
+
+```
+from osm_utils import initialize_OSM_network, get_OSM_network_data
+```
+
+### Spatial Data from Map Networks
+
+In order to initialize and create an OpenStreetMap (OSM) network from a geojson of an AOI, use:
+
+
+```
+%%time
+network = initialize_OSM_network(aoi_geojson)
+```
+![Initializing an OSM network example of Quezon City, Philippines](sample_osm_init.png)
+
+
+### Query Amenities Data 
+
+In order to pull data for, say, healthcare facilities (more documentation on amenities [here](https://wiki.openstreetmap.org/wiki/Map_features#Amenity)), use this one-liner:
+
+```
+final_df, amenities_df, count_distance_df = get_OSM_network_data(network,
+                     satellite_df,
+                     aoi_geojson,
+                    ['clinic', 'hospital', 'doctors'],
+                    5,
+                    5000,
+                    show_viz=True)
+```
+
+![Contraction heirarchy analysis example of Quezon City, Philippines](sample_osm_ch.png)
+
+This function pulls the count and distance of each node from a possible healthcare facility (for this example). It also outputs the original dataframe concatenated with the count and distances. The actual amenities data is also returned. We can then pass the resulting `final_df` dataframe into another clustering algorithm to produce dengue risk clusters with the added health capacity features.

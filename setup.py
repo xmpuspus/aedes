@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="aedes", # Replace with your own username
     packages=['aedes'],
-    version="0.0.6",
+    version="0.0.7",
     author="Xavier Puspus",
     author_email="xavier.puspus@cirrolytix.com",
     description="A package for PROJECT AEDES",
