@@ -341,7 +341,7 @@ def get_time_series_ndvi_evi(geojson, date_from='2018-01-01', date_to='2021-12-3
     
     return vegetation_df
 
-def visualize_on_map(points_df, ignore_labels=None):
+def visualize_on_map(points_df, ignore_labels=None, is_dark=True):
     """
     Visualize the clusters on the map using Folium
     """
@@ -349,6 +349,9 @@ def visualize_on_map(points_df, ignore_labels=None):
     # Plot clusters
     viz_map = folium.Map(location=[points_df['latitude'].iloc[0],points_df['longitude'].iloc[0]], zoom_start=10)
     
+    # Set to dark theme if toggled
+    if is_dark:
+        folium.TileLayer('cartodbdark_matter').add_to(viz_map)
     
     # if ignore_labels has input, remove them from unique labels
     if ignore_labels==None:
