@@ -163,4 +163,4 @@ Another example for Cotabato City, Philippines is shown below.
 
 
 ![Web application pt1 for Quezon City](sample_web_app_pt1_cotabato.png)
-![Web application pt1 for Quezon City](sample_web_app_pt1_cotabato.png)
+![Web application pt1 for Quezon City](sample_web_app_pt2_cotabato.png)
