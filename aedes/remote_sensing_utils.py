@@ -9,6 +9,9 @@ import geopy
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 
+import string
+import random
+
 def authenticate():
     """
     Authenticate connection to the server
@@ -250,6 +253,7 @@ def perform_clustering(df,
                        features=['longitude', 'latitude', 'ndvi', 'ndbi', 'ndwi', 
                                  'surface_temperature', 'precipitation_rate', 'relative_humidity'],
                        n_clusters=5)->pd.Series:
+    
     """
     From dataframe and preset list of features to cluster, output labels
     """
@@ -262,6 +266,9 @@ def perform_clustering(df,
     labels_df = pd.Series(kmeans.labels_)
     
     return labels_df
+
+def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
 
 def reverse_geocode(lat, long, user_agent_string='geogeopypy')->pd.DataFrame:
     """
@@ -281,8 +288,12 @@ def reverse_geocode_points(df, latitude='latitude', longitude='longitude')->pd.D
     Takes in a dataframe with longitude and latitude, perfoms reverse geocode and outputs the same df
     with concatenated geocode information.
     """
+    
+    # set ID
+    id_str = id_generator()
+    
     # reverse geocode points 
-    series = df[[latitude, longitude]].apply(lambda x: reverse_geocode(x[0], x[1]), axis=1)
+    series = df[[latitude, longitude]].apply(lambda x: reverse_geocode(x[0], x[1], user_agent_string=id_str), axis=1)
     points_rgeocode_df = pd.concat(series.tolist())
 
     # concatenate to original df
@@ -344,6 +355,7 @@ def get_time_series_ndvi_evi(geojson, date_from='2018-01-01', date_to='2021-12-3
 def visualize_on_map(points_df, ignore_labels=None, is_dark=True):
     """
     Visualize the clusters on the map using Folium
+    Themese for TileLayer: https://deparkes.co.uk/2016/06/10/folium-map-tiles/
     """
     
     # Plot clusters

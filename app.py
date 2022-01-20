@@ -31,7 +31,7 @@ aoi_geojson = [[[list_parsed[0], list_parsed[1]],
   [list_parsed[6], list_parsed[7]],
   [list_parsed[8], list_parsed[9]]]]
 
-satellite_df = get_satellite_measures_from_AOI(aoi_geojson, 25)
+satellite_df = get_satellite_measures_from_AOI(aoi_geojson, 50)
 
 satellite_df['labels'] = perform_clustering(satellite_df, n_clusters=3)
 
@@ -41,12 +41,53 @@ mapper = visualize_on_map(satellite_df, ignore_labels=[1])
 
 folium_static(mapper)
 
-st.subheader('Suburbs/Locations in Risky Areas')
+st.subheader('Risky Locations')
 
-risk_df = pd.Series(rev_geocode_df[['address.suburb','address.city']]
-                    .dropna()
-                    .apply(lambda x: str(x[0] )+ ", " + str(x[1]), axis=1)
-                    .value_counts()
-                    .index).rename('Locations at Risk')
+indentified_risky_places_df = rev_geocode_df[rev_geocode_df['labels'].isin([0, 2])]
 
-st.dataframe(risk_df)
+try:
+    risk_df = indentified_risky_places_df[[i for i in rev_geocode_df.columns if 'address' in i]].fillna('').value_counts().reset_index().drop(0, axis=1)
+    st.dataframe(risk_df)
+except:
+    st.write('OpenStreetMap returned no available data for each longitude-latitude pair.')
+    
+st.subheader('Top Villages at Risk')
+
+try:
+    risk_village_df = indentified_risky_places_df['address.village'].value_counts().reset_index().drop('address.village', axis=1).rename(columns={'index':'top_villages'})
+    st.dataframe(risk_village_df)
+except:
+    st.write('OpenStreetMap returned no available data for suburbs.')  
+    
+st.subheader('Top Suburbs at Risk')
+
+try:
+    risk_suburb_df = indentified_risky_places_df['address.suburb'].value_counts().reset_index().drop('address.suburb', axis=1).rename(columns={'index':'top_suburbs'})
+    st.dataframe(risk_suburb_df)
+except:
+    st.write('OpenStreetMap returned no available data for suburbs.')    
+
+st.subheader('Top Cities at Risk')
+
+try:
+    risk_cities_df = indentified_risky_places_df['address.city'].value_counts().reset_index().drop('address.city', axis=1).rename(columns={'index':'top_cities'})
+    st.dataframe(risk_cities_df)
+except:
+    st.write('OpenStreetMap returned no available data for cities.')
+
+st.subheader('Top Postcodes at Risk')
+
+try:
+    risk_postcode_df = indentified_risky_places_df['address.postcode'].value_counts().reset_index().drop('address.postcode', axis=1).rename(columns={'index':'top_postcodes'})
+    st.dataframe(risk_postcode_df)
+except:
+    st.write('OpenStreetMap returned no available data for postcodes.')
+
+st.subheader('Top Regions at Risk')
+
+try:
+    risk_region_df = indentified_risky_places_df['address.region'].value_counts().reset_index().drop('address.region', axis=1).rename(columns={'index':'top_regions'})
+    st.dataframe(risk_region_df)
+except:
+    st.write('OpenStreetMap returned no available data for region.')
+

@@ -131,3 +131,36 @@ final_df, amenities_df, count_distance_df = get_OSM_network_data(network,
 ![Contraction heirarchy analysis example of Quezon City, Philippines](sample_osm_ch.png)
 
 This function pulls the count and distance of each node from a possible healthcare facility (for this example). It also outputs the original dataframe concatenated with the count and distances. The actual amenities data is also returned. We can then pass the resulting `final_df` dataframe into another clustering algorithm to produce dengue risk clusters with the added health capacity features.
+
+
+# AEDES Demo Web Application
+
+In order to demonstrate the functionalities of using the AEDES python package, we can use Streamlit to display a web application that takes in a geojson and outputs the hotspots and the recommended cities at risk. Clone this repository, `cd` into it and follow the instructions below.
+
+### Streamlit Setup
+
+Install streamlit using:
+
+```console
+foo@bar:~$ pip install streamlit
+```
+
+Run `streamlit hello` to see if the installation was successful.
+
+### Running the sample web application 
+
+Simply run the code below to run a local version of your web application that outputs the at-risk areas as hotspots on a map as well as a subsequent list of places to prioritize disease-related proactive measures.  
+
+The one below is for a dengue hotspot map for Quezon City, Philippines.
+
+![Web application pt1 for Quezon City](sample_web_app_pt1_qc.png)
+
+This other screenshot shows the web application demonstrating the use of the geospatial modelling in outputting locations of high-risk areas.
+
+![Web application p2 for Quezon City](sample_web_app_pt2_qc.png)
+
+Another example for Cotabato City, Philippines is shown below.
+
+
+![Web application pt1 for Quezon City](sample_web_app_pt1_cotabato.png)
+![Web application pt1 for Quezon City](sample_web_app_pt1_cotabato.png)
