@@ -31,7 +31,7 @@ aoi_geojson = [[[list_parsed[0], list_parsed[1]],
   [list_parsed[6], list_parsed[7]],
   [list_parsed[8], list_parsed[9]]]]
 
-satellite_df = get_satellite_measures_from_AOI(aoi_geojson, 50)
+satellite_df = get_satellite_measures_from_AOI(aoi_geojson, 25)
 
 satellite_df['labels'] = perform_clustering(satellite_df, n_clusters=3)
 
