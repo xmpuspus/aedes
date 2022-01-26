@@ -5,12 +5,6 @@ from sklearn.cluster import KMeans as km
 import ee
 
 import geopandas as gpd
-import geopy
-from geopy.geocoders import Nominatim
-from geopy.extra.rate_limiter import RateLimiter
-
-import string
-import random
 
 def authenticate():
     """
@@ -132,7 +126,10 @@ def meanSurfaceTemperatureCollection(img, aoi)->float:
     'scale': 1000
     }).get('surface_temperature');  # result of reduceRegion is always a dictionary, so get the element we want
 
-    return surftempValue.getInfo() * 0.02 - 273.15 # converting LST Digital Number to Deg Celsius
+    try:
+        return surftempValue.getInfo() * 0.02 - 273.15 # converting LST Digital Number to Deg Celsius
+    except:
+        return None
 
 
 def meanPrecipitationCollection(img, aoi)->float:
@@ -247,7 +244,7 @@ def get_satellite_measures_from_AOI(aoi_geojson,
     points_df['relative_humidity'] = (points_df['buffered_geometry']
                                         .apply(lambda x: meanRelHumidityCollection(gldas_sat_image, x)))
     
-    return points_df
+    return points_df.dropna()
 
 def perform_clustering(df, 
                        features=['longitude', 'latitude', 'ndvi', 'ndbi', 'ndwi', 
@@ -258,7 +255,7 @@ def perform_clustering(df,
     From dataframe and preset list of features to cluster, output labels
     """
     
-    X = df[features]
+    X = df[features].dropna()
     
     kmeans = km(n_clusters=n_clusters, 
                 random_state=42).fit(X)
@@ -266,40 +263,6 @@ def perform_clustering(df,
     labels_df = pd.Series(kmeans.labels_)
     
     return labels_df
-
-def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
-
-def reverse_geocode(lat, long, user_agent_string='geogeopypy')->pd.DataFrame:
-    """
-    Takes in latlong and outputs a dataframe containing geocode details.
-    """
-    
-    locator = Nominatim(user_agent=user_agent_string)
-    coordinates = f"{lat}, {long}"
-    
-    rgeocode = RateLimiter(locator.reverse, min_delay_seconds=0.001)
-    loc_details = rgeocode(coordinates).raw
-    loc_details_df = pd.json_normalize(loc_details)
-    return loc_details_df
-
-def reverse_geocode_points(df, latitude='latitude', longitude='longitude')->pd.DataFrame:
-    """
-    Takes in a dataframe with longitude and latitude, perfoms reverse geocode and outputs the same df
-    with concatenated geocode information.
-    """
-    
-    # set ID
-    id_str = id_generator()
-    
-    # reverse geocode points 
-    series = df[[latitude, longitude]].apply(lambda x: reverse_geocode(x[0], x[1], user_agent_string=id_str), axis=1)
-    points_rgeocode_df = pd.concat(series.tolist())
-
-    # concatenate to original df
-    points_with_rgeo_df = pd.concat([df, points_rgeocode_df.reset_index()], axis=1)
-    
-    return points_with_rgeo_df
     
 def scale_factor(image):
   # scale factor for the MODIS MOD13Q1 product

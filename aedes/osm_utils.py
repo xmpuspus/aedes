@@ -1,9 +1,16 @@
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
+import string
+import random
 
 import pandana
 from pandana.loaders import osm
+
+import geopy
+from geopy.geocoders import Nominatim
+from geopy.extra.rate_limiter import RateLimiter
+from shapely.geometry import box
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -51,8 +58,8 @@ def get_OSM_network_data(network, df, aoi_geojson, poi_amenities, num_pois, maxd
     amenities_dict = {poi_amenities[i]:osm.node_query(*aoi_csv, tags=f'"amenity"="{poi_amenities[i]}"') for i in range(len(poi_amenities))}
 
     # Combine list of POIs into dataframe
-    amenities_df = pd.concat(list(amenities_dict.values()))[['lat', 'lon', 'amenity', 'addr:city', 'addr:street', 'name', 'addr:province',
-                                              'addr:town', 'addr:housenumber', 'addr:municipality']]
+    amenities_df = pd.concat(list(amenities_dict.values()))
+    amenities_df = amenities_df[['lat', 'lon', 'amenity', 'name',]+[i for i in amenities_df.columns if 'addr' in i]]
 
     # Set POIs in network
     network.set_pois(category = category,
@@ -105,3 +112,57 @@ def get_OSM_network_data(network, df, aoi_geojson, poi_amenities, num_pois, maxd
         plt.show()
         
     return final_df, amenities_df, count_distance_df
+
+def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
+def reverse_geocode(lat, long, user_agent_string='geogeopypy')->pd.DataFrame:
+    """
+    Takes in latlong and outputs a dataframe containing geocode details.
+    """
+    
+    locator = Nominatim(user_agent=user_agent_string)
+    coordinates = f"{lat}, {long}"
+    
+    rgeocode = RateLimiter(locator.reverse, min_delay_seconds=0.001)
+    loc_details = rgeocode(coordinates).raw
+    loc_details_df = pd.json_normalize(loc_details)
+    return loc_details_df
+
+def reverse_geocode_points(df, latitude='latitude', longitude='longitude')->pd.DataFrame:
+    """
+    Takes in a dataframe with longitude and latitude, perfoms reverse geocode and outputs the same df
+    with concatenated geocode information.
+    """
+    
+    # set ID
+    id_str = id_generator()
+    
+    # reverse geocode points 
+    series = df[[latitude, longitude]].apply(lambda x: reverse_geocode(x[0], x[1], user_agent_string=id_str), axis=1)
+    points_rgeocode_df = pd.concat(series.tolist())
+
+    # concatenate to original df
+    points_with_rgeo_df = pd.concat([df, points_rgeocode_df.reset_index()], axis=1)
+    
+    return points_with_rgeo_df
+
+def reverse_geocode_center_of_geojson(aoi_geojson)->str:
+    """
+    Takes in a geojson and outputs an address.
+    """
+    
+    # set ID
+    id_str = id_generator()
+    
+    # Initialize geolocator
+    geolocator = Nominatim(user_agent=id_str)
+    
+    # Set bounds as polygon
+    bounds = aoi_geojson[0][0][1], aoi_geojson[0][3][0], aoi_geojson[0][2][1], aoi_geojson[0][1][0]
+    polygon = box(*bounds)
+    
+    # reverse geocode aoi_csv 
+    reverse_geocode = geolocator.reverse(", ".join([str(i) for i in [polygon.centroid.x, polygon.centroid.y]]))
+    
+    return reverse_geocode.address

@@ -18,12 +18,14 @@ foo@bar:~$ pip install aedes
 
 # Satellite Data
 
-Import the package using:
+Import the modules of the package using:
 
 ```
 import aedes
-from aedes.remote_sensing_utils import get_satellite_measures_from_AOI, reverse_geocode_points, reverse_geocode_points
+from aedes.remote_sensing_utils import get_satellite_measures_from_AOI
 from aedes.remote_sensing_utils import perform_clustering, visualize_on_map
+
+from aedes.osm_utils import reverse_geocode_points
 ```
 
 ### Authentication and Initialization
@@ -99,7 +101,7 @@ vizo
 The package needed is imported as follows:
 
 ```
-from aedes.osm_utils import initialize_OSM_network, get_OSM_network_data
+from aedes.osm_utils import initialize_OSM_network, get_OSM_network_data 
 ```
 
 ### Spatial Data from Map Networks
@@ -129,6 +131,7 @@ final_df, amenities_df, count_distance_df = get_OSM_network_data(network,
 ```
 
 ![Contraction heirarchy analysis example of Quezon City, Philippines](sample_osm_ch.png)
+
 
 This function pulls the count and distance of each node from a possible healthcare facility (for this example). It also outputs the original dataframe concatenated with the count and distances. The actual amenities data is also returned. We can then pass the resulting `final_df` dataframe into another clustering algorithm to produce dengue risk clusters with the added health capacity features.
 
