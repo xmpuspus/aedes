@@ -28,6 +28,17 @@ def initialize_OSM_network(aoi_geojson)->pandana.network.Network:
     
     return network
 
+def node_query(aoi_csv, amenity):
+    """
+    Perform OSM's node_query function with try catch, using input geocsv and the specific amenity to query.
+    """
+    
+    try:
+        query = osm.node_query(*aoi_csv, tags=f'"amenity"="{amenity}"')
+        return query
+    except:
+        pass
+
 def get_OSM_network_data(network, df, aoi_geojson, poi_amenities, num_pois, maxdist, show_viz=False):
     """
     Input
@@ -55,7 +66,8 @@ def get_OSM_network_data(network, df, aoi_geojson, poi_amenities, num_pois, maxd
     category = f'all_{"_".join(poi_amenities)}'
 
     # query node details for each ammenity
-    amenities_dict = {poi_amenities[i]:osm.node_query(*aoi_csv, tags=f'"amenity"="{poi_amenities[i]}"') for i in range(len(poi_amenities))}
+    amenities_dict = {poi_amenities[i]:node_query(aoi_csv, poi_amenities[i]) for i in range(len(poi_amenities))}
+#     amenities_dict = {poi_amenities[i]:osm.node_query(*aoi_csv, tags=f'"amenity"="{poi_amenities[i]}"') for i in range(len(poi_amenities))}
 
     # Combine list of POIs into dataframe
     amenities_df = pd.concat(list(amenities_dict.values()))

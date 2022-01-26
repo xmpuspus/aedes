@@ -89,6 +89,56 @@ def meanNDWICollection(img, aoi)->float:
 
     return ndwiValue.getInfo()
 
+def meanNDMICollection(img, aoi)->float:
+    """
+    Normalized Difference Moisture Index (NDMI) is used to determine vegetation water content. 
+    It is calculated as a ratio between the NIR and SWIR values in traditional fashion.
+    In Landsat 8, NDMI = (Band 5 – Band 6) / (Band 5 + Band 6).
+    """
+    
+    b5 = img.select('SR_B5')
+    b6 = img.select('SR_B6')
+    
+    ndmiImage = b5.subtract(b6).divide(b5.add(b6)).rename('NDMI')
+    
+    # Compute the mean of NDMI over the 'region'
+    ndmiValue = ndmiImage.reduceRegion(**{
+    'geometry': aoi.getInfo(),
+    'reducer': ee.Reducer.mean(),
+    'scale': 1000
+    }).get('NDMI'); 
+    
+    return ndmiValue.getInfo()
+
+def meanfAPARCollection(img, aoi)->float:
+    """
+    The NOAA Climate Data Record (CDR) of AVHRR Leaf Area Index (LAI) and 
+    Fraction of Absorbed Photosynthetically Active Radiation (FAPAR) dataset 
+    contains derived values that characterize the canopy and photosynthetic activity of plants. 
+    This dataset is derived from the NOAA AVHRR Surface Reflectance product and is gridded at a 
+    resolution of 0.05° on a daily basis. The values are computed globally over land surfaces, 
+    but not over bare or very sparsely vegetated areas, permanent ice or snow, permanent wetland, 
+    urban areas, or water bodies.
+    
+    Range: min value is 0, max value is 896 with scale factor of 0.001.
+    """
+    
+    fapar = img.select('FAPAR')
+    
+    faparImage = fapar.rename('fapar')
+    
+    # Compute the mean of of precipitation over the 'region'
+    faparValue = faparImage.reduceRegion(**{
+    'geometry': aoi.getInfo(),
+    'reducer': ee.Reducer.mean(),
+    'scale': 1000
+    }).get('fapar'); 
+
+    try:
+        return faparValue.getInfo() * 0.001
+    except:
+        return 0
+
 def meanAirQualityCollection(img, aoi)->float:
     """
     Aerosol Index is a qualitative index indicating the presence of elevated layers of aerosols 
@@ -180,22 +230,26 @@ def meanRelHumidityCollection(img, aoi)->float:
 
 def get_satellite_measures_from_AOI(aoi_geojson, 
                            sample_points, 
-                           sat_catalog='LANDSAT/LC08/C02/T1_L2',
+                           landsat_catalog='LANDSAT/LC08/C02/T1_L2',
+                           modis_catalog = "MODIS/006/MOD11A1",
+                           gldas_catalog = "NASA/GLDAS/V021/NOAH/G025/T3H",
+#                            noaa_catalog = "NOAA/CDR/AVHRR/LAI_FAPAR/V5",
                            date_from='2021-11-01', 
                            date_to='2021-12-31')->pd.DataFrame:
     """
     From a bounding box geojson, get normalized difference indices at different sample points.
     """
-    # Landsat catalog
-    landsat = ee.ImageCollection(sat_catalog)
+    # Landsat catalog (for normalized difference indices)
+    landsat = ee.ImageCollection(landsat_catalog)
     
     # MODIS catalog (for surface temperature)
-    surface_temperature_catalog = "MODIS/006/MOD11A1"
-    modis = ee.ImageCollection(surface_temperature_catalog)
+    modis = ee.ImageCollection(modis_catalog)
     
     # GLDAS catalog (for precipitation)
-    precip_catalog = "NASA/GLDAS/V021/NOAH/G025/T3H"
-    gldas = ee.ImageCollection(precip_catalog)
+    gldas = ee.ImageCollection(gldas_catalog)
+    
+#     # NOAA catalog (for fAPAR)
+#     noaa = ee.ImageCollection(noaa_catalog)
     
     # setting the Area of Interest (AOI)
     AOI = ee.Geometry.Polygon(aoi_geojson)
@@ -203,8 +257,8 @@ def get_satellite_measures_from_AOI(aoi_geojson,
     # filter area and date
     landsat_AOI = landsat.filterBounds(AOI).filterDate(date_from, date_to)
     
-    # Get satellite image
-    sat_image = ee.Image(landsat_AOI.median())
+    # Get satellite image with lowest cloud cover
+    sat_image = ee.Image(landsat_AOI.sort('CLOUD_COVER').first())
     
     # filter area and date for MODIS
     modis_AOI = modis.filterBounds(AOI).filterDate(date_from, date_to)
@@ -217,6 +271,12 @@ def get_satellite_measures_from_AOI(aoi_geojson,
 
     # Get satellite image for GLDAS
     gldas_sat_image = ee.Image(gldas_AOI.median())
+    
+#     # filter area and date for NOAA
+#     noaa_AOI = noaa.filterBounds(AOI).filterDate(date_from, date_to)
+
+#     # Get satellite image for NOAA
+#     noaa_sat_image = ee.Image(noaa_AOI.median())
     
     # Function to get 1km patches of images from each point
     roi_with_buffer_fn = lambda geopoint: ee.Geometry.Point([geopoint.xy[0][0], geopoint.xy[1][0]]).buffer(1000)
@@ -234,8 +294,10 @@ def get_satellite_measures_from_AOI(aoi_geojson,
 
     # Get all normalized difference indices
     points_df['ndvi'] = points_df['buffered_geometry'].apply(lambda x: meanNDVICollection(sat_image, x))
+#     points_df['fapar'] = points_df['buffered_geometry'].apply(lambda x: meanfAPARCollection(noaa_sat_image, x))
     points_df['ndbi'] = points_df['buffered_geometry'].apply(lambda x: meanNDBICollection(sat_image, x))
     points_df['ndwi'] = points_df['buffered_geometry'].apply(lambda x: meanNDWICollection(sat_image, x))
+    points_df['ndmi'] = points_df['buffered_geometry'].apply(lambda x: meanNDMICollection(sat_image, x))
     points_df['aerosol'] = points_df['buffered_geometry'].apply(lambda x: meanAirQualityCollection(sat_image, x))
     points_df['surface_temperature'] = (points_df['buffered_geometry']
                                         .apply(lambda x: meanSurfaceTemperatureCollection(modis_sat_image, x)))
@@ -244,10 +306,10 @@ def get_satellite_measures_from_AOI(aoi_geojson,
     points_df['relative_humidity'] = (points_df['buffered_geometry']
                                         .apply(lambda x: meanRelHumidityCollection(gldas_sat_image, x)))
     
-    return points_df.dropna()
+    return points_df
 
 def perform_clustering(df, 
-                       features=['longitude', 'latitude', 'ndvi', 'ndbi', 'ndwi', 
+                       features=['longitude', 'latitude', 'ndvi', 'ndbi', 'ndwi', 'ndmi', 
                                  'surface_temperature', 'precipitation_rate', 'relative_humidity'],
                        n_clusters=5)->pd.Series:
     
@@ -255,7 +317,7 @@ def perform_clustering(df,
     From dataframe and preset list of features to cluster, output labels
     """
     
-    X = df[features].dropna()
+    X = df[features].dropna(axis=1, how='all')
     
     kmeans = km(n_clusters=n_clusters, 
                 random_state=42).fit(X)
