@@ -112,18 +112,15 @@ def meanNDMICollection(img, aoi)->float:
 
 def meanfAPARCollection(img, aoi)->float:
     """
-    The NOAA Climate Data Record (CDR) of AVHRR Leaf Area Index (LAI) and 
-    Fraction of Absorbed Photosynthetically Active Radiation (FAPAR) dataset 
-    contains derived values that characterize the canopy and photosynthetic activity of plants. 
-    This dataset is derived from the NOAA AVHRR Surface Reflectance product and is gridded at a 
-    resolution of 0.05° on a daily basis. The values are computed globally over land surfaces, 
-    but not over bare or very sparsely vegetated areas, permanent ice or snow, permanent wetland, 
-    urban areas, or water bodies.
+    The MCD15A3H V6 level 4, Combined Fraction of Photosynthetically Active Radiation (FPAR), 
+    and Leaf Area Index (LAI) product is a 4-day composite data set with 500 meter pixel size. 
+    The algorithm chooses the "best" pixel available from all the acquisitions of both MODIS sensors located on
+    NASA's Terra and Aqua satellites from within the 4-day period.
     
-    Range: min value is 0, max value is 896 with scale factor of 0.001.
+    Range: min value is 0, max value is 100 with scale factor of 0.01.
     """
     
-    fapar = img.select('FAPAR')
+    fapar = img.select('Fpar')
     
     faparImage = fapar.rename('fapar')
     
@@ -233,7 +230,6 @@ def get_satellite_measures_from_AOI(aoi_geojson,
                            landsat_catalog='LANDSAT/LC08/C02/T1_L2',
                            modis_catalog = "MODIS/006/MOD11A1",
                            gldas_catalog = "NASA/GLDAS/V021/NOAH/G025/T3H",
-#                            noaa_catalog = "NOAA/CDR/AVHRR/LAI_FAPAR/V5",
                            date_from='2021-11-01', 
                            date_to='2021-12-31')->pd.DataFrame:
     """
@@ -248,8 +244,8 @@ def get_satellite_measures_from_AOI(aoi_geojson,
     # GLDAS catalog (for precipitation)
     gldas = ee.ImageCollection(gldas_catalog)
     
-#     # NOAA catalog (for fAPAR)
-#     noaa = ee.ImageCollection(noaa_catalog)
+    # MODIS catalog (for fAPAR)
+    modis_fpar = ee.ImageCollection("MODIS/006/MCD15A3H")
     
     # setting the Area of Interest (AOI)
     AOI = ee.Geometry.Polygon(aoi_geojson)
@@ -272,11 +268,11 @@ def get_satellite_measures_from_AOI(aoi_geojson,
     # Get satellite image for GLDAS
     gldas_sat_image = ee.Image(gldas_AOI.median())
     
-#     # filter area and date for NOAA
-#     noaa_AOI = noaa.filterBounds(AOI).filterDate(date_from, date_to)
+    # filter area and date for MODIS FAPAR
+    modis_fpar_AOI = modis_fpar.filterBounds(AOI).filterDate(date_from, date_to)
 
-#     # Get satellite image for NOAA
-#     noaa_sat_image = ee.Image(noaa_AOI.median())
+    # Get satellite image for MODIS FAPAR
+    modis_fpar_sat_image = ee.Image(modis_fpar_AOI.median())
     
     # Function to get 1km patches of images from each point
     roi_with_buffer_fn = lambda geopoint: ee.Geometry.Point([geopoint.xy[0][0], geopoint.xy[1][0]]).buffer(1000)
@@ -294,7 +290,7 @@ def get_satellite_measures_from_AOI(aoi_geojson,
 
     # Get all normalized difference indices
     points_df['ndvi'] = points_df['buffered_geometry'].apply(lambda x: meanNDVICollection(sat_image, x))
-#     points_df['fapar'] = points_df['buffered_geometry'].apply(lambda x: meanfAPARCollection(noaa_sat_image, x))
+    points_df['fapar'] = points_df['buffered_geometry'].apply(lambda x: meanfAPARCollection(modis_fpar_sat_image, x))
     points_df['ndbi'] = points_df['buffered_geometry'].apply(lambda x: meanNDBICollection(sat_image, x))
     points_df['ndwi'] = points_df['buffered_geometry'].apply(lambda x: meanNDWICollection(sat_image, x))
     points_df['ndmi'] = points_df['buffered_geometry'].apply(lambda x: meanNDMICollection(sat_image, x))
@@ -398,9 +394,9 @@ def visualize_on_map(points_df, ignore_labels=None, is_dark=True):
         unique_labels = [label for label in unique_labels if label not in ignore_labels]
     
     # set colors
-    colors = ['red', 'blue', 'green', 'purple', 'orange', 'darkred', 
-              'lightred', 'beige', 'darkblue', 'darkgreen', 'cadetblue', 
-              'darkpurple', 'white', 'pink', 'lightblue', 'lightgreen', 
+    colors = ['lightred', 'orange', 'red', 'darkred', 'lightblue', 'blue', 'darkblue',
+              'green', 'purple',  'beige',  'darkgreen', 'cadetblue', 
+              'darkpurple', 'white', 'pink', 'lightgreen', 
               'gray', 'black', 'lightgray']
     
     for j in range(len(unique_labels)):
