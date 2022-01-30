@@ -140,7 +140,7 @@ final_df, amenities_df, count_distance_df = get_OSM_network_data(network,
 This function pulls the count and distance of each node from a possible healthcare facility (for this example). It also outputs the original dataframe concatenated with the count and distances. The actual amenities data is also returned. We can then pass the resulting `final_df` dataframe into another clustering algorithm to produce dengue risk clusters with the added health capacity features.
 
 
-# Social Listening
+# Social Listening Data
 
 To query for Google search trends, import:
 
