@@ -157,7 +157,28 @@ search_df = get_search_trends(iso_geotag)
 
 This pulls data for the top 5 dengue-related searches within a geolocation dictated by an ISO tag listed and described [here](https://en.wikipedia.org/wiki/ISO_3166-2:PH). Below is a sample:
 
-'| date                |   dengue |   dengue symptoms |   dengue fever |   symptoms of dengue |   dengue sintomas | isPartial   |\n|:--------------------|---------:|------------------:|---------------:|---------------------:|------------------:|:------------|\n| 2017-02-05 00:00:00 |        7 |                 3 |              1 |                    1 |                 0 | False       |\n| 2017-02-12 00:00:00 |       10 |                 5 |              1 |                    2 |                 1 | False       |\n| 2017-02-19 00:00:00 |        9 |                 3 |              3 |                    0 |                 0 | False       |\n| 2017-02-26 00:00:00 |        7 |                 1 |              2 |                    1 |                 1 | False       |\n| 2017-03-05 00:00:00 |       12 |                 4 |              1 |                    2 |                 2 | False       |'
+| date                |   dengue |   dengue symptoms |   dengue fever |   symptoms of dengue |   dengue sintomas | isPartial   |
+|:--------------------|---------:|------------------:|---------------:|---------------------:|------------------:|:------------|
+| 2021-09-12 00:00:00 |       17 |                 2 |              3 |                    0 |                 1 | False       |
+| 2021-09-19 00:00:00 |       12 |                 3 |              1 |                    1 |                 1 | False       |
+| 2021-09-26 00:00:00 |        6 |                 1 |              0 |                    0 |                 1 | False       |
+| 2021-10-03 00:00:00 |        5 |                 1 |              0 |                    0 |                 0 | False       |
+| 2021-10-10 00:00:00 |        9 |                 1 |              0 |                    0 |                 0 | False       |
+| 2021-10-17 00:00:00 |        9 |                 1 |              0 |                    0 |                 0 | False       |
+| 2021-10-24 00:00:00 |        9 |                 1 |              0 |                    0 |                 0 | False       |
+| 2021-10-31 00:00:00 |        5 |                 1 |              1 |                    0 |                 0 | False       |
+| 2021-11-07 00:00:00 |        8 |                 1 |              1 |                    0 |                 0 | False       |
+| 2021-11-14 00:00:00 |        8 |                 1 |              0 |                    0 |                 0 | False       |
+| 2021-11-21 00:00:00 |       12 |                 2 |              1 |                    0 |                 0 | False       |
+| 2021-11-28 00:00:00 |       14 |                 2 |              2 |                    1 |                 0 | False       |
+| 2021-12-05 00:00:00 |       10 |                 3 |              1 |                    0 |                 0 | False       |
+| 2021-12-12 00:00:00 |        6 |                 0 |              0 |                    0 |                 0 | False       |
+| 2021-12-19 00:00:00 |        7 |                 2 |              1 |                    1 |                 0 | False       |
+| 2021-12-26 00:00:00 |        7 |                 1 |              2 |                    1 |                 1 | False       |
+| 2022-01-02 00:00:00 |       11 |                 5 |              1 |                    1 |                 1 | False       |
+| 2022-01-09 00:00:00 |       10 |                 4 |              2 |                    1 |                 0 | False       |
+| 2022-01-16 00:00:00 |        7 |                 3 |              1 |                    1 |                 0 | False       |
+| 2022-01-23 00:00:00 |        7 |                 1 |              1 |                    0 |                 0 | True        |
 
 ![Sample Google Search Trends Chart](images/sample_google_search.png)
 
