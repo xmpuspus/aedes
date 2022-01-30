@@ -225,8 +225,32 @@ def meanRelHumidityCollection(img, aoi)->float:
 
     return relative_humidityValue.getInfo()
 
-def get_satellite_measures_from_AOI(aoi_geojson, 
-                           sample_points, 
+
+def df_to_ee_points(df, longitude='lon', latitude='lat'):
+    """
+    Converts a dataframe of long lat to Earth Engine-readable FeatureCollection object.
+    """
+    
+    points = ee.FeatureCollection(df[[longitude, latitude]].apply(lambda x: ee.Geometry.Point(x[0], x[1]), axis=1).values.tolist())
+    
+    return points
+
+def generate_random_ee_points(aoi_geojson, sample_points):
+    """
+    Given an area of interest geojson, create sample points within
+    that bounding box returning an Earth Engine FeatureCollection object.
+    """
+    
+    # setting the Area of Interest (AOI)
+    AOI = ee.Geometry.Polygon(aoi_geojson)
+    
+    # Get more features of interest
+    points = ee.FeatureCollection.randomPoints(AOI, sample_points)
+    
+    return points
+    
+def get_satellite_measures_from_points(points,
+                           aoi_geojson, 
                            landsat_catalog='LANDSAT/LC08/C02/T1_L2',
                            modis_catalog = "MODIS/006/MOD11A1",
                            gldas_catalog = "NASA/GLDAS/V021/NOAH/G025/T3H",
@@ -276,9 +300,6 @@ def get_satellite_measures_from_AOI(aoi_geojson,
     
     # Function to get 1km patches of images from each point
     roi_with_buffer_fn = lambda geopoint: ee.Geometry.Point([geopoint.xy[0][0], geopoint.xy[1][0]]).buffer(1000)
-    
-    # Get more features of interest
-    points = ee.FeatureCollection.randomPoints(AOI, sample_points)
     
     # Convert ee.geometry points to pandas dataframe and add 1km buffer around each point
     points_df = gpd.GeoDataFrame.from_features(points.getInfo()["features"])
