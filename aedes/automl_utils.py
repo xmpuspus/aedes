@@ -66,14 +66,14 @@ def perform_classification(X, y,
     model.export(os.path.join(folder_path, pipeline_name))
     
     # Get the best model
-    exctracted_best_model = model.fitted_pipeline_.steps[-1][1]
+    extracted_best_model = model.fitted_pipeline_.steps[-1][1]
     
     # Train the `exctracted_best_model` using the whole dataset
-    exctracted_best_model.fit(X, y) 
+    extracted_best_model.fit(X.dropna(), y[X.isna().sum(axis=1)==0]) 
 
    # Feature importance dataframe
     feat_importances_df = (pd.DataFrame({'Columns':X.columns,
-                  'Feature Importances': exctracted_best_model.feature_importances_})
+                  'Feature Importances': extracted_best_model.feature_importances_})
                     .set_index('Columns')
                     .sort_values('Feature Importances', ascending=False))
     
@@ -91,7 +91,7 @@ def perform_classification(X, y,
         prompt_path = folder_path
     print(f"Best model pickle file and best model pipeline saved to {prompt_path}.")
     
-    return exctracted_best_model, feat_importances_df
+    return extracted_best_model, feat_importances_df
     
 def perform_regression(X, y, 
                            max_time_mins=10,
@@ -150,14 +150,14 @@ def perform_regression(X, y,
     model.export(os.path.join(folder_path, pipeline_name))
     
     # Get the best model
-    exctracted_best_model = model.fitted_pipeline_.steps[-1][1]
+    extracted_best_model = model.fitted_pipeline_.steps[-1][1]
     
     # Train the `exctracted_best_model` using the whole dataset
-    exctracted_best_model.fit(X, y) 
+    extracted_best_model.fit(X.dropna(), y[X.isna().sum(axis=1)==0]) 
 
    # Feature importance dataframe
     feat_importances_df = (pd.DataFrame({'Columns':X.columns,
-                  'Feature Importances': exctracted_best_model.feature_importances_})
+                  'Feature Importances': extracted_best_model.feature_importances_})
                     .set_index('Columns')
                     .sort_values('Feature Importances', ascending=False))
     
@@ -175,7 +175,7 @@ def perform_regression(X, y,
         prompt_path = folder_path
     print(f"Best model pickle file and best model pipeline saved to {prompt_path}.")
     
-    return exctracted_best_model, feat_importances_df
+    return extracted_best_model, feat_importances_df
 
 def perform_clustering(df, 
                        features=['longitude', 'latitude', 'ndvi', 'ndbi', 'ndwi', 'ndmi', 
