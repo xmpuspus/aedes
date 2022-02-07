@@ -233,4 +233,4 @@ model, feature_imps_df = perform_classification(X_train, y_train)
 The output should look like this:
 ![ML Model for Quezon City](images/sample_ml_model.png)
 
-which also generates a python script of the best machine learning model pipeline similar to this [script](best_ades_model.py)
+which also generates a python script of the best machine learning model pipeline similar to this [script](https://github.com/xmpuspus/aedes/blob/main/best_aedes_model.py).
