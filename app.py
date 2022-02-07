@@ -4,9 +4,9 @@ import streamlit as st
 import re
 
 import aedes
-from aedes.remote_sensing_utils import get_satellite_measures_from_AOI
-from aedes.remote_sensing_utils import perform_clustering, visualize_on_map
-
+from aedes.remote_sensing_utils import df_to_ee_points, generate_random_ee_points
+from aedes.remote_sensing_utils import visualize_on_map, get_satellite_measures_from_points
+from aedes.automl_utils import perform_clustering
 from aedes.osm_utils import initialize_OSM_network, get_OSM_network_data, reverse_geocode_points, reverse_geocode_center_of_geojson
 
 from streamlit_folium import folium_static
@@ -37,9 +37,12 @@ st.subheader('Bounding Box Center')
 
 st.write(f"Detect hotspots around {reverse_geocode_center_of_geojson(aoi_geojson)}...")
 
-satellite_df = get_satellite_measures_from_AOI(aoi_geojson, 50)
+points = generate_random_ee_points(aoi_geojson, sample_points=20)
 
-satellite_df['labels'] = perform_clustering(satellite_df, n_clusters=3)
+satellite_df = get_satellite_measures_from_points(points, aoi_geojson)
+
+clustering_model = perform_clustering(satellite_df, n_clusters=3)
+satellite_df['labels'] = pd.Series(clustering_model.labels_)
 
 rev_geocode_df = reverse_geocode_points(satellite_df)
 

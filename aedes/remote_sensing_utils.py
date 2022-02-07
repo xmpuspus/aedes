@@ -1,7 +1,6 @@
 import pandas as pd
 import folium
 
-from sklearn.cluster import KMeans as km
 import ee
 
 import geopandas as gpd
@@ -324,24 +323,6 @@ def get_satellite_measures_from_points(points,
                                         .apply(lambda x: meanRelHumidityCollection(gldas_sat_image, x)))
     
     return points_df
-
-def perform_clustering(df, 
-                       features=['longitude', 'latitude', 'ndvi', 'ndbi', 'ndwi', 'ndmi', 
-                                 'surface_temperature', 'precipitation_rate', 'relative_humidity'],
-                       n_clusters=5)->pd.Series:
-    
-    """
-    From dataframe and preset list of features to cluster, output labels
-    """
-    
-    X = df[features].dropna(axis=1, how='all')
-    
-    kmeans = km(n_clusters=n_clusters, 
-                random_state=42).fit(X)
-    
-    labels_df = pd.Series(kmeans.labels_)
-    
-    return labels_df
     
 def scale_factor(image):
   # scale factor for the MODIS MOD13Q1 product

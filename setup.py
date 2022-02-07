@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="aedes", # Replace with your own username
     packages=['aedes'],
-    version="0.0.13",
+    version="0.0.16",
     author="Xavier Puspus",
     author_email="xavier.puspus@cirrolytix.com",
     description="A python package for PROJECT AEDES by Xavier Puspus of Cirrolytix Research Services.",
@@ -17,7 +17,8 @@ setuptools.setup(
                       'geopandas',
                       'geopy',
                       'pandana',
-                      'shapely'],
+                      'shapely',
+                      'pycaret'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

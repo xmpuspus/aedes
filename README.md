@@ -23,9 +23,11 @@ Import the modules of the package using:
 ```
 import aedes
 from aedes.remote_sensing_utils import generate_random_ee_points, df_to_ee_points, get_satellite_measures_from_points
-from aedes.remote_sensing_utils import perform_clustering, visualize_on_map
+from aedes.remote_sensing_utils import visualize_on_map
 
 from aedes.osm_utils import reverse_geocode_points
+
+from aedes.automl_utils import perform_clustering, perform_classification
 ```
 
 ### Authentication and Initialization
@@ -84,8 +86,8 @@ rev_geocode_qc_df.head()
 This packages uses KMeans as the unsupervised learning technique of choice to perform clustering on the geospatial data enriched with normalized indices, air quality and surface temperatures with your chosen number of clusters.
 
 ```
-rev_geocode_qc_df['labels'] = perform_clustering(rev_geocode_qc_df, 
-                                     n_clusters=3)
+clustering_model = perform_clustering(rev_geocode_qc_df, n_clusters=3)
+rev_geocode_qc_df['labels'] = pd.Series(clustering_model.labels_)
 ```
 
 ### Visualize Hotspots on a Map
@@ -213,3 +215,22 @@ Another example for Cotabato City, Philippines is shown below.
 
 ![Web application pt1 for Quezon City](images/sample_web_app_pt1_cotabato.png)
 ![Web application pt1 for Quezon City](images/sample_web_app_pt2_cotabato.png)
+
+# AEDES Automated Machine Learning
+
+We have also added functionality to this package that performs tree-based pipeline optimization (TPOT) that optimizes machine learning pipelines using genetic algorithm as described [here](https://epistasislab.github.io/tpot/).
+
+Data preparation is still required as we as train-test splitting as needed. Using the one-liner `perform_classification` or `perform_regression`, we can train a machine learning model hundreds to thousands of times in different configurations, feature engineering methodologies and various models in order to output:
+
+- the best ml model (in-memory and saved as a pickle file, default is `best_model.pkl`)
+- the best ml pipeline which is a python script that describes the ml methodology
+- and the feature importances (both as a dataframe, and as a plot)
+
+```
+model, feature_imps_df = perform_classification(X_train, y_train)
+```
+
+The output should look like this:
+![ML Model for Quezon City](images/sample_ml_model.png)
+
+which also generates a python script of the best machine learning model pipeline similar to this [script](best_ades_model.py)

@@ -7,3 +7,4 @@ pandana
 pandas
 scikit-learn
 streamlit_folium
+tpot
