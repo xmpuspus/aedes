@@ -180,7 +180,7 @@ def perform_regression(X, y,
 def perform_clustering(df, 
                        features=['longitude', 'latitude', 'ndvi', 'ndbi', 'ndwi', 'ndmi', 
                                  'surface_temperature', 'precipitation_rate', 'relative_humidity'],
-                       n_clusters=5)->pd.Series:
+                       n_clusters=5):
     
     """
     From dataframe and preset list of features to cluster, outputs the final clustering model

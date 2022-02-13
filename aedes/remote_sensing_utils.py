@@ -390,21 +390,23 @@ def visualize_on_map(points_df, ignore_labels=None, is_dark=True):
     
     # if ignore_labels has input, remove them from unique labels
     if ignore_labels==None:
-        unique_labels = points_df['labels'].unique().tolist()
+        unique_labels = list(range(1, points_df['labels'].max()+1))
     else:
-        unique_labels = points_df['labels'].unique().tolist()
+        unique_labels = list(range(1, points_df['labels'].max()+1))
         unique_labels = [label for label in unique_labels if label not in ignore_labels]
     
     # set colors
-    colors = ['lightred', 'orange', 'red', 'darkred', 'lightblue', 'blue', 'darkblue',
-              'green', 'purple',  'beige',  'darkgreen', 'cadetblue', 
-              'darkpurple', 'white', 'pink', 'lightgreen', 
-              'gray', 'black', 'lightgray']
+    # colors = ['lightred', 'orange', 'red', 'darkred', 'lightblue', 'blue', 'darkblue',
+    #           'green', 'purple',  'beige',  'darkgreen', 'cadetblue', 
+    #           'darkpurple', 'white', 'pink', 'lightgreen', 
+    #           'gray', 'black', 'lightgray']
+    colors = ['white', 'pink', 'lightred', 'red', 'darkred', 'darkpurple', 'purple',
+              'darkblue', 'blue', 'lightblue']
     
     for j in range(len(unique_labels)):
         for i in points_df[points_df['labels']==unique_labels[j]].index:
             folium.Marker(
-            location = [points_df.geometry.iloc[i].y, points_df.geometry.iloc[i].x],
+            location = [points_df['latitude'].iloc[i], points_df['longitude'].iloc[i]],
             popup = points_df.iloc[i]['labels'],
             icon = folium.Icon(color=colors[j])
             ).add_to(viz_map)

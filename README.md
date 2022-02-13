@@ -169,18 +169,7 @@ This pulls data for the top 5 dengue-related searches within a geolocation dicta
 | 2021-10-17 00:00:00 |        9 |                 1 |              0 |                    0 |                 0 | False       |
 | 2021-10-24 00:00:00 |        9 |                 1 |              0 |                    0 |                 0 | False       |
 | 2021-10-31 00:00:00 |        5 |                 1 |              1 |                    0 |                 0 | False       |
-| 2021-11-07 00:00:00 |        8 |                 1 |              1 |                    0 |                 0 | False       |
-| 2021-11-14 00:00:00 |        8 |                 1 |              0 |                    0 |                 0 | False       |
-| 2021-11-21 00:00:00 |       12 |                 2 |              1 |                    0 |                 0 | False       |
-| 2021-11-28 00:00:00 |       14 |                 2 |              2 |                    1 |                 0 | False       |
-| 2021-12-05 00:00:00 |       10 |                 3 |              1 |                    0 |                 0 | False       |
-| 2021-12-12 00:00:00 |        6 |                 0 |              0 |                    0 |                 0 | False       |
-| 2021-12-19 00:00:00 |        7 |                 2 |              1 |                    1 |                 0 | False       |
-| 2021-12-26 00:00:00 |        7 |                 1 |              2 |                    1 |                 1 | False       |
-| 2022-01-02 00:00:00 |       11 |                 5 |              1 |                    1 |                 1 | False       |
-| 2022-01-09 00:00:00 |       10 |                 4 |              2 |                    1 |                 0 | False       |
-| 2022-01-16 00:00:00 |        7 |                 3 |              1 |                    1 |                 0 | False       |
-| 2022-01-23 00:00:00 |        7 |                 1 |              1 |                    0 |                 0 | True        |
+
 
 ![Sample Google Search Trends Chart](images/sample_google_search.png)
 
@@ -234,3 +223,79 @@ The output should look like this:
 ![ML Model for Quezon City](images/sample_ml_model.png)
 
 which also generates a python script of the best machine learning model pipeline similar to this [script](https://github.com/xmpuspus/aedes/blob/main/best_aedes_model.py).
+
+# INFORM Risk Models
+
+
+We can use `perform_clustering()` to automatically create 5 clusters from the input data, with features preselected based on the INFORM risk framework. The packages needed are:
+
+```
+from aedes.automl_utils import perform_clustering
+import pandas as pd
+```
+
+To demonstrate one example, say for *Lack of Coping Capacity*, the features needed are `['longitude',
+ 'latitude',
+ 'nearest_clinic_hospital_doctors_1',
+ 'nearest_clinic_hospital_doctors_2',
+ 'nearest_clinic_hospital_doctors_3',
+ 'nearest_clinic_hospital_doctors_4',
+ 'nearest_clinic_hospital_doctors_5',
+ 'count_clinic_hospital_doctors_within_5.0km']`. As long as the input data contains the same columns, we can just perform clustering as follows:
+ 
+```
+df = pd.read_csv("flatfile_of_your_dataset.csv")
+
+loc_features = ['longitude',
+ 'latitude',
+ 'nearest_clinic_hospital_doctors_1',
+ 'nearest_clinic_hospital_doctors_2',
+ 'nearest_clinic_hospital_doctors_3',
+ 'nearest_clinic_hospital_doctors_4',
+ 'nearest_clinic_hospital_doctors_5',
+ 'count_clinic_hospital_doctors_within_5.0km']
+ 
+ # Perform clustering (this model can be saved and re-loaded later using joblib)
+loc_model = perform_clustering(df, 
+                               features=loc_features,
+                               n_clusters=5)
+# Create the labels                               
+loc_labels = pd.Series(loc_model.labels_)
+
+# Create INFORM risk dataframe for Lack of Coping Capacity
+loc_full_df = df[loc_features].drop_duplicates()
+loc_full_df['loc_labels'] = loc_labels
+```
+
+We then perform analysis on categorical comparison of feature distribution as demonstrated by the sample images below:
+
+Nearest Clinics/Hospitals  |  Count of Clinics/Hospitals
+:-------------------------:|:-------------------------:
+![](images/sample_loc_nearest.png)  |  ![](images/sample_loc_count.png)
+
+We see from above that, in decreasing count of and increasing distance from coping facilities, the cluster labels are: `[2, 0, 3, 4, 1]`. We can then create the *Lack of Coping Capacity* risk labels by re-labelling the clusters in this order and visualize the risk map as follows (darker is riskier):
+
+```
+from aedes.remote_sensing_utils import visualize_on_map
+
+clusters_to_loc_risk_df = pd.DataFrame({"labels":list(range(1, 6)),
+                                        "loc_labels":[2, 0, 3, 4, 1]})
+
+points_df = loc_full_df.merge(clusters_to_loc_risk_df)
+
+visualize_on_map(points_df)
+```
+
+![Sample LOCC risk map](images/sample_locc_risk_map.png)
+
+We can also save and load the clustering model as follows:
+
+```
+import joblib
+
+# Save the clustering model as a pickle file
+joblib.dump(loc_model, "loc_clustering_model.pkl")
+
+# Load the clustering model from a pickle file
+loc_model = joblib.load("loc_clustering_model.pkl")
+```
