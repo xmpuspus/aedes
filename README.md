@@ -150,14 +150,14 @@ To query for Google search trends, import:
 from aedes.social_listening_utils import get_search_trends
 ```
 
-then use:
+Find the specific ISO tag for the location (requirement by Google) [here](https://www.iso.org/obp/ui/#iso:code:3166:PH), then use:
 
 ```
 iso_geotag = "PH-00"
 search_df = get_search_trends(iso_geotag)
 ```
 
-This pulls data for the top 5 dengue-related searches within a geolocation dictated by an ISO tag listed and described [here](https://en.wikipedia.org/wiki/ISO_3166-2:PH). Below is a sample:
+This pulls data for the top 5 dengue-related searches within a geolocation dictated by an ISO tag listed and described [here](https://www.iso.org/obp/ui/#iso:code:3166:PH). Below is a sample:
 
 | date                |   dengue |   dengue symptoms |   dengue fever |   symptoms of dengue |   dengue sintomas | isPartial   |
 |:--------------------|---------:|------------------:|---------------:|---------------------:|------------------:|:------------|
