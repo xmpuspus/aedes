@@ -93,7 +93,7 @@ def perform_classification(X, y,
     
     return extracted_best_model, feat_importances_df
     
-def perform_regression(X, y, 
+def perform_regression(X, y,
                            max_time_mins=10,
                            max_eval_time_mins=0.05,
                            folder_path="",
@@ -104,38 +104,38 @@ def perform_regression(X, y,
                            show_feature_importances=True
                           ):
     """
-    This module performs limited automl regression 
+    This module performs limited automl regression
     as described in this documentation https://epistasislab.github.io/tpot/.
     The output model follows sklearn-like modules like .score, .predict, etc
-    
+
     Input
         X: dataframe of predictors
         y: Series or dataframe to be predicted (Regression)
         max_time_mins: float value in minutes for maximum training time
         max_eval_time_mins: float value in minutes for max time per pipeline
-        folder_path: String for path to store files/models into 
+        folder_path: String for path to store files/models into
         model_name: String to name the best model's pickle file
         pipeline_name: String to name the best model pipeline python script
         cv: integer for number of cross-validations to perform
         scoring: classification scoring metric described here
         show_feature_importances: boolean that dictates showing/non-showing of feature importance plot
-        
+
     Returns:
     best_model_pipeline: ml model generated from the automl formulation
     feature_importances_df: dataframe of features and feature importances
     """
 
-    # define TPOTClassifier
-    model = TPOTClassifier(generations=20, 
-                           population_size=50, 
-                           cv=cv, 
-                           scoring=scoring, 
-                           verbosity=2, 
-                           random_state=42, 
-                           n_jobs=-1,
-                           max_time_mins=max_time_mins,
-                           max_eval_time_mins=max_eval_time_mins
-                          )
+    # define TPOTRegressor
+    model = TPOTRegressor(generations=20,
+                          population_size=50,
+                          cv=cv,
+                          scoring=scoring,
+                          verbosity=2,
+                          random_state=42,
+                          n_jobs=-1,
+                          max_time_mins=max_time_mins,
+                          max_eval_time_mins=max_eval_time_mins
+                         )
     
     # Fit X and y into model and find the best model
     model.fit(X, y)

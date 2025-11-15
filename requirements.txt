@@ -1,11 +1,29 @@
-earthengine_api
-folium
-geopandas
-geopy
-matplotlib
-pandana
-pandas
-scikit-learn
-streamlit_folium
-tpot
-osmnet
+# Core dependencies
+earthengine-api>=0.1.374
+folium>=0.14.0
+geopandas>=0.13.0
+geopy>=2.3.0
+matplotlib>=3.7.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+numpy>=1.24.0
+
+# AutoML and ML
+tpot>=0.12.0
+xgboost>=2.0.0
+
+# Geospatial and network analysis
+pandana>=0.6.1
+osmnet>=0.1.6
+shapely>=2.0.0
+
+# Social listening
+pytrends>=4.9.0
+
+# Streamlit (for web app)
+streamlit>=1.28.0
+streamlit-folium>=0.15.0
+
+# Additional utilities
+joblib>=1.3.0
+requests>=2.31.0
