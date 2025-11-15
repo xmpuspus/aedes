@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEDES Satellite Data Viewer</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Leaflet Draw CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        #map {
+            height: 100vh;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .results-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 4px 0;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border: 1px solid #000;
+            border-radius: 3px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            opacity: 0.9;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        /* Scrollbar styling */
+        .control-panel::-webkit-scrollbar,
+        .results-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .control-panel::-webkit-scrollbar-track,
+        .results-panel::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb,
+        .results-panel::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Control Panel -->
+    <div class="control-panel bg-white rounded-lg shadow-2xl p-6 w-96">
+        <div class="mb-4">
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">🛰️ AEDES Satellite Viewer</h1>
+            <p class="text-sm text-gray-600">Draw a box to analyze satellite data</p>
+        </div>
+
+        <!-- Configuration -->
+        <div class="space-y-4">
+            <!-- Date Range -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Start Date:</label>
+                <input type="date" id="dateFrom" value="2024-01-01"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">End Date:</label>
+                <input type="date" id="dateTo" value="2024-03-31"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <!-- Sample Points -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Sample Points: <span id="samplePointsValue" class="font-bold text-blue-600">20</span>
+                </label>
+                <input type="range" id="samplePoints" value="20" min="5" max="50" step="5"
+                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                       oninput="document.getElementById('samplePointsValue').textContent = this.value">
+            </div>
+
+            <!-- Instructions -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                <p class="font-semibold text-blue-900 mb-2">📍 How to use:</p>
+                <ol class="list-decimal ml-5 text-sm text-blue-800 space-y-1">
+                    <li>Click the square tool in the map toolbar</li>
+                    <li>Draw a rectangle on your area of interest</li>
+                    <li>Wait for the satellite data to load</li>
+                    <li>Explore the results on the right panel</li>
+                </ol>
+            </div>
+
+            <!-- Quick Test Button -->
+            <button onclick="runQuickTest()"
+                    class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 transform hover:scale-105">
+                🚀 Quick Test (Quezon City)
+            </button>
+
+            <!-- Status -->
+            <div id="status" class="hidden">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="loading-spinner"></div>
+                        <div>
+                            <p class="font-semibold text-blue-900">Processing...</p>
+                            <p class="text-sm text-blue-700" id="statusMessage">Fetching satellite data</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error -->
+            <div id="error" class="hidden">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p class="font-semibold text-red-900 mb-1">❌ Error</p>
+                    <p class="text-sm text-red-700" id="errorMessage"></p>
+                </div>
+            </div>
+
+            <!-- NDVI Legend -->
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <p class="font-semibold text-gray-800 mb-2">🌿 NDVI Legend:</p>
+                <div class="space-y-1 text-sm">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #0000ff;"></div>
+                        <span>Water (< 0)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #d2b48c;"></div>
+                        <span>Barren (0 - 0.1)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ffff00;"></div>
+                        <span>Sparse Veg (0.1 - 0.3)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #90ee90;"></div>
+                        <span>Moderate Veg (0.3 - 0.6)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #006400;"></div>
+                        <span>Dense Veg (> 0.6)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Panel -->
+    <div id="resultsPanel" class="results-panel bg-white rounded-lg shadow-2xl p-6 w-96 hidden">
+        <div class="mb-4">
+            <h2 class="text-xl font-bold text-gray-800 mb-1">📊 Analysis Results</h2>
+            <p class="text-sm text-gray-600" id="resultsSubtitle">Satellite data summary</p>
+        </div>
+
+        <!-- Summary Stats -->
+        <div id="summaryStats" class="space-y-3 mb-4">
+            <!-- Stats will be inserted here -->
+        </div>
+
+        <!-- Detailed Results -->
+        <div id="detailedResults" class="bg-gray-50 rounded-lg p-4 mb-4">
+            <h3 class="font-semibold text-gray-800 mb-2">Detailed Metrics:</h3>
+            <div id="detailedMetrics" class="space-y-2 text-sm">
+                <!-- Metrics will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="bg-white rounded-lg p-4 border border-gray-200 mb-4">
+            <h3 class="font-semibold text-gray-800 mb-3">Distribution Chart:</h3>
+            <canvas id="dataChart" height="200"></canvas>
+        </div>
+
+        <!-- Export Button -->
+        <button onclick="exportToCSV()"
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 transform hover:scale-105 mb-2">
+            📥 Export to CSV
+        </button>
+
+        <!-- Clear Button -->
+        <button onclick="clearResults()"
+                class="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+            🗑️ Clear Results
+        </button>
+    </div>
+
+    <!-- Map -->
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Leaflet Draw JS -->
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+    <script>
+        // Global variables
+        let map;
+        let drawnItems;
+        let currentData = null;
+        let dataChart = null;
+        let markerLayer = L.layerGroup();
+
+        // Initialize map
+        function initMap() {
+            // Create map centered on Philippines
+            map = L.map('map').setView([12.8797, 121.7740], 6);
+
+            // Add OpenStreetMap tiles
+            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            });
+
+            // Add satellite imagery option
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri',
+                maxZoom: 19
+            });
+
+            // Default to OSM
+            osmLayer.addTo(map);
+
+            // Add layer control
+            const baseMaps = {
+                "Street Map": osmLayer,
+                "Satellite": satelliteLayer
+            };
+            L.control.layers(baseMaps).addTo(map);
+
+            // Add marker layer
+            markerLayer.addTo(map);
+
+            // Initialize draw control
+            drawnItems = new L.FeatureGroup();
+            map.addLayer(drawnItems);
+
+            const drawControl = new L.Control.Draw({
+                draw: {
+                    polygon: false,
+                    polyline: false,
+                    circle: false,
+                    marker: false,
+                    circlemarker: false,
+                    rectangle: {
+                        shapeOptions: {
+                            color: '#3498db',
+                            weight: 3,
+                            fillOpacity: 0.1
+                        }
+                    }
+                },
+                edit: {
+                    featureGroup: drawnItems,
+                    remove: true
+                }
+            });
+            map.addControl(drawControl);
+
+            // Handle rectangle drawn
+            map.on('draw:created', function(e) {
+                const layer = e.layer;
+                drawnItems.clearLayers();
+                drawnItems.addLayer(layer);
+
+                // Get bounding box coordinates
+                const bounds = layer.getBounds();
+                const bbox = [
+                    [bounds.getWest(), bounds.getSouth()],
+                    [bounds.getEast(), bounds.getSouth()],
+                    [bounds.getEast(), bounds.getNorth()],
+                    [bounds.getWest(), bounds.getNorth()],
+                    [bounds.getWest(), bounds.getSouth()]
+                ];
+
+                // Fetch satellite data
+                fetchSatelliteData(bbox);
+            });
+
+            // Handle rectangle deleted
+            map.on('draw:deleted', function() {
+                clearResults();
+            });
+        }
+
+        // Fetch satellite data from backend
+        async function fetchSatelliteData(bbox) {
+            const statusDiv = document.getElementById('status');
+            const errorDiv = document.getElementById('error');
+            const resultsPanel = document.getElementById('resultsPanel');
+
+            // Show loading
+            statusDiv.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+            resultsPanel.classList.add('hidden');
+
+            // Get form values
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+            const samplePoints = parseInt(document.getElementById('samplePoints').value);
+
+            updateStatus('Connecting to Google Earth Engine...');
+
+            try {
+                const response = await fetch('http://localhost:5000/api/satellite-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        bbox: bbox,
+                        date_from: dateFrom,
+                        date_to: dateTo,
+                        sample_points: samplePoints
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentData = result;
+                    displayResults(result);
+                    visualizeDataOnMap(result.data);
+                } else {
+                    showError(result.error || 'Unknown error occurred');
+                }
+
+            } catch (error) {
+                showError('Failed to fetch data: ' + error.message);
+            } finally {
+                statusDiv.classList.add('hidden');
+            }
+        }
+
+        // Update status message
+        function updateStatus(message) {
+            document.getElementById('statusMessage').textContent = message;
+        }
+
+        // Display results in panel
+        function displayResults(result) {
+            const resultsPanel = document.getElementById('resultsPanel');
+            const summaryStats = document.getElementById('summaryStats');
+            const detailedMetrics = document.getElementById('detailedMetrics');
+            const subtitle = document.getElementById('resultsSubtitle');
+
+            // Update subtitle
+            subtitle.textContent = `${result.summary.points_analyzed} points analyzed`;
+
+            // Create summary stat cards
+            const stats = [];
+
+            if (result.summary.avg_ndvi !== undefined) {
+                stats.push({
+                    label: 'Avg NDVI',
+                    value: result.summary.avg_ndvi.toFixed(3),
+                    icon: '🌿'
+                });
+            }
+
+            if (result.summary.avg_surface_temperature !== undefined) {
+                stats.push({
+                    label: 'Avg Temperature',
+                    value: result.summary.avg_surface_temperature.toFixed(1) + '°C',
+                    icon: '🌡️'
+                });
+            }
+
+            if (result.summary.avg_ndwi !== undefined) {
+                stats.push({
+                    label: 'Avg NDWI',
+                    value: result.summary.avg_ndwi.toFixed(3),
+                    icon: '💧'
+                });
+            }
+
+            if (result.summary.avg_precipitation_rate !== undefined) {
+                stats.push({
+                    label: 'Avg Precipitation',
+                    value: result.summary.avg_precipitation_rate.toFixed(3),
+                    icon: '🌧️'
+                });
+            }
+
+            summaryStats.innerHTML = stats.map(stat => `
+                <div class="stat-card">
+                    <div class="stat-label">${stat.icon} ${stat.label}</div>
+                    <div class="stat-value">${stat.value}</div>
+                </div>
+            `).join('');
+
+            // Detailed metrics
+            const metrics = [];
+
+            const addMetric = (label, value) => {
+                if (value !== undefined && value !== null) {
+                    metrics.push({ label, value });
+                }
+            };
+
+            addMetric('Points Analyzed', result.summary.points_analyzed);
+            addMetric('Date Range', result.summary.date_range);
+            addMetric('Min NDVI', result.summary.min_ndvi?.toFixed(3));
+            addMetric('Max NDVI', result.summary.max_ndvi?.toFixed(3));
+            addMetric('Min Temperature', result.summary.min_surface_temperature?.toFixed(1) + '°C');
+            addMetric('Max Temperature', result.summary.max_surface_temperature?.toFixed(1) + '°C');
+
+            detailedMetrics.innerHTML = metrics.map(m => `
+                <div class="flex justify-between py-1 border-b border-gray-200">
+                    <span class="text-gray-600">${m.label}:</span>
+                    <span class="font-semibold text-gray-900">${m.value}</span>
+                </div>
+            `).join('');
+
+            // Create chart
+            createDataChart(result.data);
+
+            // Show panel
+            resultsPanel.classList.remove('hidden');
+        }
+
+        // Create data distribution chart
+        function createDataChart(data) {
+            const ctx = document.getElementById('dataChart').getContext('2d');
+
+            // Destroy existing chart
+            if (dataChart) {
+                dataChart.destroy();
+            }
+
+            // Extract NDVI values
+            const ndviValues = data.map(d => d.ndvi).filter(v => v !== null);
+
+            // Create histogram bins
+            const bins = [0, 0, 0, 0, 0]; // <0, 0-0.1, 0.1-0.3, 0.3-0.6, >0.6
+            ndviValues.forEach(v => {
+                if (v < 0) bins[0]++;
+                else if (v < 0.1) bins[1]++;
+                else if (v < 0.3) bins[2]++;
+                else if (v < 0.6) bins[3]++;
+                else bins[4]++;
+            });
+
+            dataChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Water\n(< 0)', 'Barren\n(0-0.1)', 'Sparse\n(0.1-0.3)', 'Moderate\n(0.3-0.6)', 'Dense\n(> 0.6)'],
+                    datasets: [{
+                        label: 'Number of Points',
+                        data: bins,
+                        backgroundColor: [
+                            'rgba(0, 0, 255, 0.7)',
+                            'rgba(210, 180, 140, 0.7)',
+                            'rgba(255, 255, 0, 0.7)',
+                            'rgba(144, 238, 144, 0.7)',
+                            'rgba(0, 100, 0, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgb(0, 0, 255)',
+                            'rgb(210, 180, 140)',
+                            'rgb(255, 255, 0)',
+                            'rgb(144, 238, 144)',
+                            'rgb(0, 100, 0)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'NDVI Distribution'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Visualize data points on map
+        function visualizeDataOnMap(data) {
+            // Clear previous markers
+            markerLayer.clearLayers();
+
+            // Add markers for each point
+            data.forEach(point => {
+                if (point.latitude && point.longitude) {
+                    const ndvi = point.ndvi || 0;
+                    const color = getNDVIColor(ndvi);
+
+                    const marker = L.circleMarker([point.latitude, point.longitude], {
+                        radius: 8,
+                        fillColor: color,
+                        color: '#000',
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    });
+
+                    // Create popup content
+                    let popupContent = '<div class="p-2">';
+                    popupContent += '<p class="font-bold text-lg mb-2">📊 Satellite Data</p>';
+
+                    if (point.ndvi !== null) popupContent += `<p><strong>NDVI:</strong> ${point.ndvi.toFixed(3)}</p>`;
+                    if (point.ndwi !== null) popupContent += `<p><strong>NDWI:</strong> ${point.ndwi.toFixed(3)}</p>`;
+                    if (point.ndbi !== null) popupContent += `<p><strong>NDBI:</strong> ${point.ndbi.toFixed(3)}</p>`;
+                    if (point.surface_temperature !== null) popupContent += `<p><strong>Temperature:</strong> ${point.surface_temperature.toFixed(1)}°C</p>`;
+                    if (point.precipitation_rate !== null) popupContent += `<p><strong>Precipitation:</strong> ${point.precipitation_rate.toFixed(3)}</p>`;
+                    if (point.relative_humidity !== null) popupContent += `<p><strong>Humidity:</strong> ${point.relative_humidity.toFixed(1)}%</p>`;
+
+                    popupContent += `<p class="mt-2 text-sm text-gray-600">Lat: ${point.latitude.toFixed(4)}, Lon: ${point.longitude.toFixed(4)}</p>`;
+                    popupContent += '</div>';
+
+                    marker.bindPopup(popupContent);
+                    markerLayer.addLayer(marker);
+                }
+            });
+
+            // Fit map to markers
+            if (markerLayer.getLayers().length > 0) {
+                map.fitBounds(markerLayer.getBounds(), { padding: [50, 50] });
+            }
+        }
+
+        // Get color based on NDVI value
+        function getNDVIColor(ndvi) {
+            if (ndvi === null || isNaN(ndvi)) return '#808080';  // Gray for no data
+            if (ndvi < 0) return '#0000ff';                       // Water - Blue
+            if (ndvi < 0.1) return '#d2b48c';                     // Barren - Tan
+            if (ndvi < 0.3) return '#ffff00';                     // Sparse vegetation - Yellow
+            if (ndvi < 0.6) return '#90ee90';                     // Moderate vegetation - Light green
+            return '#006400';                                     // Dense vegetation - Dark green
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            const errorMessage = document.getElementById('errorMessage');
+
+            errorMessage.textContent = message;
+            errorDiv.classList.remove('hidden');
+
+            // Auto-hide after 10 seconds
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 10000);
+        }
+
+        // Clear results
+        function clearResults() {
+            document.getElementById('resultsPanel').classList.add('hidden');
+            markerLayer.clearLayers();
+            drawnItems.clearLayers();
+            currentData = null;
+            if (dataChart) {
+                dataChart.destroy();
+                dataChart = null;
+            }
+        }
+
+        // Export to CSV
+        function exportToCSV() {
+            if (!currentData || !currentData.data) {
+                alert('No data to export');
+                return;
+            }
+
+            const data = currentData.data;
+            const headers = Object.keys(data[0]);
+
+            // Create CSV content
+            let csv = headers.join(',') + '\n';
+            data.forEach(row => {
+                const values = headers.map(h => {
+                    const value = row[h];
+                    return value !== null && value !== undefined ? value : '';
+                });
+                csv += values.join(',') + '\n';
+            });
+
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `satellite_data_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Quick test function
+        async function runQuickTest() {
+            updateStatus('Running quick test...');
+            document.getElementById('status').classList.remove('hidden');
+
+            try {
+                const response = await fetch('http://localhost:5000/api/quick-test');
+                const result = await response.json();
+
+                if (result.success) {
+                    // Create a fake summary for display
+                    const fakeSummary = {
+                        success: true,
+                        data: result.data,
+                        summary: {
+                            points_analyzed: result.data.length,
+                            date_range: '2024-01-01 to 2024-03-31',
+                            avg_ndvi: result.data.reduce((sum, d) => sum + (d.ndvi || 0), 0) / result.data.length,
+                            min_ndvi: Math.min(...result.data.map(d => d.ndvi || 0)),
+                            max_ndvi: Math.max(...result.data.map(d => d.ndvi || 0))
+                        }
+                    };
+
+                    // Add temperature if available
+                    if (result.data[0].surface_temperature !== undefined) {
+                        const temps = result.data.map(d => d.surface_temperature).filter(t => t !== null);
+                        if (temps.length > 0) {
+                            fakeSummary.summary.avg_surface_temperature = temps.reduce((a, b) => a + b, 0) / temps.length;
+                            fakeSummary.summary.min_surface_temperature = Math.min(...temps);
+                            fakeSummary.summary.max_surface_temperature = Math.max(...temps);
+                        }
+                    }
+
+                    currentData = fakeSummary;
+                    displayResults(fakeSummary);
+                    visualizeDataOnMap(result.data);
+
+                    // Zoom to Quezon City
+                    map.setView([14.6760, 121.0437], 11);
+                } else {
+                    showError(result.error);
+                }
+            } catch (error) {
+                showError('Quick test failed: ' + error.message);
+            } finally {
+                document.getElementById('status').classList.add('hidden');
+            }
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            initMap();
+
+            // Set default dates to recent months
+            const today = new Date();
+            const threeMonthsAgo = new Date(today);
+            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+            document.getElementById('dateTo').value = today.toISOString().split('T')[0];
+            document.getElementById('dateFrom').value = threeMonthsAgo.toISOString().split('T')[0];
+        };
+    </script>
+</body>
+</html>
